@@ -1,0 +1,347 @@
+﻿@page "/Tetris"
+@using BlazorGames.Models.Tetris
+
+@implements IDisposable
+
+
+<h3>Tetris Game</h3>
+<div @onkeydown="KeyPressed">
+    <div>
+        Score: <div id="score">@score</div>
+        <button class="btn btn-primary" @onclick="StartGame" autofocus>Start</button>
+        <button class="btn btn-warning" @onclick="Reset" autofocus>Reset</button>
+    </div>
+    <div id="board">
+        <Canvas @ref="cvs" width="200" height="400"></Canvas>
+    </div>
+    @if (PlayGameMusic)
+    {
+        <audio autoplay loop>
+            <source src="/sounds/tetris/Tetris.ogg" type="audio/ogg">
+        </audio>
+    }
+    @*else
+    {
+        <audio muted><source src="/sounds/tetris/Tetris.ogg" type="audio/ogg"></audio>
+    }*@
+</div>
+
+@code {
+    private Canvas cvs;
+    private Context2D ctx;
+    private int score = 0;
+    private string[,] board = new string[ROW, COL];
+    private List<Piece> Pieces = new List<Piece>();
+    private Tetromino tetromino = new Tetromino();
+    private bool gameOver = false;
+    private Piece gamePiece;
+    private Timer timer;
+    private int speed = 1000;
+    private bool PlayGameMusic;
+
+    const int ROW = 20;
+    const int COL = 10;
+    const int SQ = 20;
+    const string VACANT = "Gray";
+
+
+    protected override void OnInitialized()
+    {
+        Pieces.Add(new Piece(tetromino.Z, "red"));
+        Pieces.Add(new Piece(tetromino.S, "green"));
+        Pieces.Add(new Piece(tetromino.T, "yellow"));
+        Pieces.Add(new Piece(tetromino.O, "blue"));
+        Pieces.Add(new Piece(tetromino.L, "purple"));
+        Pieces.Add(new Piece(tetromino.I, "cyan"));
+        Pieces.Add(new Piece(tetromino.J, "orange"));
+        PlayGameMusic = true;
+        base.OnInitialized();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            ctx = await cvs.GetContext2DAsync();
+            clearBoard();
+        }
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    private void clearBoard()
+    {
+        for (int r = 0; r < ROW; r++)
+        {
+            for (int c = 0; c < COL; c++)
+            {
+                board[r, c] = VACANT;
+            }
+        }
+        drawBoard();
+    }
+
+    protected void StartGame()
+    {
+        gamePiece = randomPiece();
+        gameOver = false;
+        score = 0;
+        speed = 1000;
+        timer?.Dispose();
+        timer = new Timer(Drop, null, 1000, 1000);
+    }
+
+    protected void Reset()
+    {
+        clearBoard();
+        StartGame();
+    }
+
+    protected void KeyPressed(KeyboardEventArgs args)
+    {
+        switch (args.Code)
+        {
+            case "ArrowLeft":
+                PieceMoveLeft(gamePiece);
+                break;
+            case "ArrowRight":
+                PieceMoveRight(gamePiece);
+                break;
+            case "ArrowDown":
+                PieceMoveDown(gamePiece);
+                break;
+            case "ArrowUp":
+                PieceRotate(gamePiece);
+                break;
+            default:
+                Console.WriteLine($"Key {args.Key} Code {args.Code}");
+                break;
+        }
+    }
+
+    protected void Drop(object state)
+    {
+        PieceMoveDown(gamePiece);
+        InvokeAsync(() => StateHasChanged());
+        if (gameOver)
+            timer.Dispose();
+    }
+
+    private void drawBoard()
+    {
+        int r, c;
+
+        for (r = 0; r < ROW; r++)
+        {
+            for (c = 0; c < COL; c++)
+            {
+                drawSquare(c, r, board[r, c]);
+            }
+        }
+    }
+
+    private void drawSquare(int x, int y, string color)
+    {
+        ctx.FillStyleAsync(color);
+        ctx.FillRectAsync(x * SQ, y * SQ, SQ, SQ);
+        ctx.StrokeAsync("black");
+        ctx.StrokeRectAsync(x * SQ, y * SQ, SQ, SQ);
+    }
+
+    private Piece randomPiece()
+    {
+        Random rnd = new Random();
+        int r = rnd.Next(Pieces.Count);
+        return new Piece(Pieces[r].TetrominoPiece, Pieces[r].Color);
+    }
+
+    private void PieceFill(Piece piece, string color)
+    {
+        for (int r = 0; r < piece.ActiveTetromino.GetLength(0); r++)
+        {
+            for (int c = 0; c < piece.ActiveTetromino.GetLength(1); c++)
+            {
+                if (piece.ActiveTetromino[r, c] == 1)
+                {
+                    drawSquare(piece.x + c, piece.y + r, color);
+                }
+            }
+        }
+    }
+
+    private void PieceDraw(Piece piece)
+    {
+        PieceFill(piece, piece.Color);
+    }
+
+    private void PieceUndraw(Piece piece)
+    {
+        PieceFill(piece, VACANT);
+    }
+
+    private void PieceMoveDown(Piece piece)
+    {
+        if (!PieceCollision(0, 1, piece.ActiveTetromino))
+        {
+            PieceUndraw(piece);
+            piece.y++;
+            PieceDraw(piece);
+        }
+        else
+        {
+            // we lock the piece and generate a new one
+            PieceLock(piece);
+            gamePiece = null;
+            gamePiece = randomPiece();
+
+        }
+    }
+
+    private void PieceMoveRight(Piece piece)
+    {
+        if (!PieceCollision(1, 0, piece.ActiveTetromino))
+        {
+            PieceUndraw(piece);
+            piece.x++;
+            PieceDraw(piece);
+        }
+    }
+
+    private void PieceMoveLeft(Piece piece)
+    {
+        if (!PieceCollision(-1, 0, piece.ActiveTetromino))
+        {
+            PieceUndraw(piece);
+            piece.x--;
+            PieceDraw(piece);
+        }
+    }
+
+    private void PieceRotate(Piece piece)
+    {
+        var tetrominoN = (piece.TetrominoPieceN + 1) % piece.TetrominoPiece.Length;
+        var nextPattern = piece.TetrominoPiece[tetrominoN];
+        var kick = 0;
+
+        if (PieceCollision(0, 0, nextPattern))
+        {
+            if (piece.x > COL / 2)
+            {
+                // it's the right wall
+                kick = -1;
+            }
+            else
+            {
+                // it's the left wall
+                kick = 1;
+            }
+        }
+
+        if (!PieceCollision(kick, 0, nextPattern))
+        {
+            PieceUndraw(piece);
+            piece.x += kick;
+            piece.TetrominoPieceN = tetrominoN;
+            piece.ActiveTetromino = piece.TetrominoPiece[tetrominoN];
+            PieceDraw(piece);
+        }
+    }
+
+
+    private void PieceLock(Piece piece)
+    {
+        bool breakLoops = false;
+
+        for (int r = 0; r < piece.ActiveTetromino.GetLength(0); r++)
+        {
+            for (int c = 0; c < piece.ActiveTetromino.GetLength(1); c++)
+            {
+                if (piece.ActiveTetromino[r, c] == 0)   //skip the vacant squares
+                    continue;
+
+                // pieces to lock on top = game over
+                if (piece.y + r < 0)
+                {
+                    gameOver = true;
+                    breakLoops = true;
+                    break;
+                }
+                board[piece.y + r, piece.x + c] = piece.Color;
+            }
+            if (breakLoops) break;
+        }
+
+        // remove full row
+
+        for (int r = 0; r < ROW; r++)
+        {
+            bool isRowFull = true;
+            for (int c = 0; c < COL; c++)
+            {
+                isRowFull = isRowFull && (board[r, c] != VACANT);
+            }
+
+            if (isRowFull)
+            {
+                // Row is Full, we will move down all the rows above it
+                for (int y = r; y > 1; y--)
+                {
+                    for (int c = 0; c < COL; c++)
+                    {
+                        board[y, c] = board[y - 1, c];
+                    }
+                }
+
+                // the top row baord[0,..] has no row above it
+                for (int c = 0; c < COL; c++)
+                {
+                    board[0, c] = VACANT;
+                }
+
+                score += 10;
+                if (score % 20 == 0)
+                {
+                    speed -= 100;
+                    timer.Change(speed, speed);
+                }
+
+            }
+        }
+        drawBoard();
+    }
+
+    private bool PieceCollision(int x, int y, int[,] tetromino)
+    {
+        for (int r = 0; r < tetromino.GetLength(0); r++)
+        {
+            for (int c = 0; c < tetromino.GetLength(1); c++)
+            {
+                //if the square is empty, we skip it
+                if (tetromino[r, c] == 0)
+                    continue;
+
+                int newX = gamePiece.x + c + x;
+                int newY = gamePiece.y + r + y;
+
+
+                // conditions
+                if (newX < 0 || newX >= COL || newY >= ROW)
+                    return true;
+
+                // skip if newY < 0; board[-1] will crush our game
+                if (newY < 0)
+                    continue;
+
+                // check if there is locked piece already in place
+                if (board[newY, newX] != VACANT)
+                    return true;
+
+            }
+        }
+        return false;
+    }
+
+    public void Dispose()
+    {
+
+    }
+}
