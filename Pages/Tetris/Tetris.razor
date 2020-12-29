@@ -7,7 +7,7 @@
 
 
 <h3>Tetris Game</h3>
-<div @onkeydown="KeyPressed">
+<div @onkeydown="KeyPressed" @ontouchmove="TouchMove">
     <div>
         Score: <div id="score">@score</div>
         <button class="btn btn-primary" @onclick="StartGame" autofocus>Start</button>
@@ -22,6 +22,9 @@
     <audio id="SoundEffectAudio">
         <source id="SoundEffectAudioSource">
     </audio>
+    <div>
+        Touch Movement: @touchX , @touchY   
+    </div>
 </div>
 
 @code {
@@ -36,6 +39,8 @@
     private Timer timer;
     private int speed = 1000;
     private IJSObjectReference module;
+    private double touchX, touchY = 0;
+
 
     private DateTime lastKeyedTime = DateTime.Now;
 
@@ -124,6 +129,13 @@
                     break;
             }
         }
+    }
+
+    protected void TouchMove(TouchEventArgs args)
+    {
+        var t = args.Touches;
+        touchX = t.FirstOrDefault().ClientX;
+        touchX = t.FirstOrDefault().ClientY;
     }
 
     protected void Drop(object state)
