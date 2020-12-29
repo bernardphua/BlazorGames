@@ -23,9 +23,7 @@ x86/
 [Aa][Rr][Mm]/
 [Aa][Rr][Mm]64/
 bld/
-[Bb]in/Release/net5.0/ref
-[Bb]in/Release/net5.0/wwwroot
-[Bb]in/Release/net5.0/BlazorGames*
+[Bb]in/
 [Oo]bj/
 [Ll]og/
 
