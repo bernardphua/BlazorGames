@@ -1,4 +1,6 @@
 ﻿@page "/Tetris"
+@inject IJSRuntime jsRuntime
+
 @using BlazorGames.Models.Tetris
 
 @implements IDisposable
@@ -12,18 +14,14 @@
         <button class="btn btn-warning" @onclick="Reset" autofocus>Reset</button>
     </div>
     <div id="board">
-        <Canvas @ref="cvs" width="200" height="400"></Canvas>
+        <Canvas id="canvas"  @ref="cvs" width="200" height="400" style="border: 8px solid orange;"></Canvas>
     </div>
-    @if (PlayGameMusic)
-    {
-        <audio autoplay loop>
-            <source src="/sounds/tetris/Tetris.ogg" type="audio/ogg">
-        </audio>
-    }
-    @*else
-    {
-        <audio muted><source src="/sounds/tetris/Tetris.ogg" type="audio/ogg"></audio>
-    }*@
+    <audio id="MainGameAudio" loop>
+        <source id="MainGameAudioSource">
+    </audio>
+    <audio id="SoundEffectAudio">
+        <source id="SoundEffectAudioSource">
+    </audio>
 </div>
 
 @code {
@@ -37,8 +35,11 @@
     private Piece gamePiece;
     private Timer timer;
     private int speed = 1000;
-    private bool PlayGameMusic;
+    private IJSObjectReference module;
 
+    private DateTime lastKeyedTime = DateTime.Now;
+
+    const int KEYSPEED = 80;
     const int ROW = 20;
     const int COL = 10;
     const int SQ = 20;
@@ -54,7 +55,6 @@
         Pieces.Add(new Piece(tetromino.L, "purple"));
         Pieces.Add(new Piece(tetromino.I, "cyan"));
         Pieces.Add(new Piece(tetromino.J, "orange"));
-        PlayGameMusic = true;
         base.OnInitialized();
     }
 
@@ -64,6 +64,8 @@
         {
             ctx = await cvs.GetContext2DAsync();
             clearBoard();
+
+            module = await jsRuntime.InvokeAsync<IJSObjectReference>("import", "./js/tetris.js");
         }
         await base.OnAfterRenderAsync(firstRender);
     }
@@ -82,6 +84,7 @@
 
     protected void StartGame()
     {
+        module.InvokeVoidAsync("PlayAudio", "MainGameAudio", "MainGameAudioSource", "/sounds/tetris/Tetris.ogg");
         gamePiece = randomPiece();
         gameOver = false;
         score = 0;
@@ -90,31 +93,36 @@
         timer = new Timer(Drop, null, 1000, 1000);
     }
 
-    protected void Reset()
+    protected async Task Reset()
     {
+        await module.InvokeVoidAsync("StopAudio", "MainGameAudio");
         clearBoard();
         StartGame();
     }
 
     protected void KeyPressed(KeyboardEventArgs args)
     {
-        switch (args.Code)
+        if ((DateTime.Now - lastKeyedTime).TotalMilliseconds > KEYSPEED)
         {
-            case "ArrowLeft":
-                PieceMoveLeft(gamePiece);
-                break;
-            case "ArrowRight":
-                PieceMoveRight(gamePiece);
-                break;
-            case "ArrowDown":
-                PieceMoveDown(gamePiece);
-                break;
-            case "ArrowUp":
-                PieceRotate(gamePiece);
-                break;
-            default:
-                Console.WriteLine($"Key {args.Key} Code {args.Code}");
-                break;
+            lastKeyedTime = DateTime.Now;
+            switch (args.Code)
+            {
+                case "ArrowLeft":
+                    PieceMoveLeft(gamePiece);
+                    break;
+                case "ArrowRight":
+                    PieceMoveRight(gamePiece);
+                    break;
+                case "ArrowDown":
+                    PieceMoveDown(gamePiece);
+                    break;
+                case "ArrowUp":
+                    PieceRotate(gamePiece);
+                    break;
+                default:
+                    Console.WriteLine($"Key {args.Key} Code {args.Code}");
+                    break;
+            }
         }
     }
 
@@ -261,6 +269,8 @@
                 // pieces to lock on top = game over
                 if (piece.y + r < 0)
                 {
+                    module.InvokeVoidAsync("PlayAudio", "SoundEffectAudio", "SoundEffectAudioSource", "/sounds/tetris/gameover.wav");
+                    module.InvokeVoidAsync("StopAudio", "MainGameAudio");
                     gameOver = true;
                     breakLoops = true;
                     break;
@@ -270,43 +280,59 @@
             if (breakLoops) break;
         }
 
+
         // remove full row
-
-        for (int r = 0; r < ROW; r++)
+        if (!gameOver)
         {
-            bool isRowFull = true;
-            for (int c = 0; c < COL; c++)
+            for (int r = 0; r < ROW; r++)
             {
-                isRowFull = isRowFull && (board[r, c] != VACANT);
-            }
-
-            if (isRowFull)
-            {
-                // Row is Full, we will move down all the rows above it
-                for (int y = r; y > 1; y--)
-                {
-                    for (int c = 0; c < COL; c++)
-                    {
-                        board[y, c] = board[y - 1, c];
-                    }
-                }
-
-                // the top row baord[0,..] has no row above it
+                bool isRowFull = true;
                 for (int c = 0; c < COL; c++)
                 {
-                    board[0, c] = VACANT;
+                    isRowFull = isRowFull && (board[r, c] != VACANT);
                 }
 
-                score += 10;
-                if (score % 20 == 0)
+                if (isRowFull)
                 {
-                    speed -= 100;
-                    timer.Change(speed, speed);
-                }
+                    module.InvokeVoidAsync("PlayAudio", "SoundEffectAudio", "SoundEffectAudioSource", "/sounds/tetris/clear.wav");
+                    // Row is Full, we will move down all the rows above it
+                    for (int y = r; y > 1; y--)
+                    {
+                        for (int c = 0; c < COL; c++)
+                        {
+                            board[y, c] = board[y - 1, c];
+                        }
+                    }
 
+                    // the top row baord[0,..] has no row above it
+                    for (int c = 0; c < COL; c++)
+                    {
+                        board[0, c] = VACANT;
+                    }
+
+                    score += 10;
+                    if (score % 20 == 0)
+                    {
+                        module.InvokeVoidAsync("PlayAudio", "SoundEffectAudio", "SoundEffectAudioSource", "/sounds/tetris/success.wav");
+                        speed -= 100;
+                        timer.Change(speed, speed);
+                    }
+
+                }
             }
+            drawBoard();
         }
-        drawBoard();
+        else
+        {
+            ctx.FillStyleAsync("Cornsilk");
+            ctx.FillRectAsync(0, 150, 400, 70);
+            ctx.StrokeAsync("DarkKhaki");
+            ctx.StrokeRectAsync(0, 150, 400, 70);
+            ctx.FontAsync("35px Comic Sans MS");
+            ctx.TextAlignAsync(TextAlign.Center);
+            ctx.FillStyleAsync(0, 0, 200, 0, (0,"magenta"),(0.5,"blue"),(1.0,"red"));
+            ctx.FillTextAsync("Game Over", 100, 200);
+        }
     }
 
     private bool PieceCollision(int x, int y, int[,] tetromino)
@@ -342,6 +368,6 @@
 
     public void Dispose()
     {
-
+        timer?.Dispose();
     }
 }
