@@ -151,10 +151,11 @@
         }
 
         var tapElapse = (DateTime.Now - lastTapTime).TotalMilliseconds;
-        if (tapElapse <600 && tapElapse > 0)
+        if (tapElapse < 600 && tapElapse > 0)
         {
             doubleTap = "Double Tap";
             swipeDirection = "";
+            PieceRotate(gamePiece);
         }
 
         lastTapTime = DateTime.Now;
@@ -177,17 +178,30 @@
         if (Math.Abs(xDiff) > Math.Abs(yDiff))
         {
             if (xDiff > 0)
+            {
                 swipeDirection = "Swipe Left";
+                PieceMoveLeft(gamePiece);
+            }
             else
+            {
                 swipeDirection = "Swipe Right";
+                PieceMoveRight(gamePiece);
+            }
         }
         else
         {
             if (yDiff > 0)
+            {
                 swipeDirection = "Swipe Up";
+                PieceRotate(gamePiece);
+            }
             else
+            {
                 swipeDirection = "Swipe Down";
+                PieceMoveDown(gamePiece);
+            }
         }
+        doubleTap = "";
         xDown = yDown = 0;
     }
 
