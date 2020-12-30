@@ -7,25 +7,36 @@
 @implements IDisposable
 
 
-<h3>Blazor Tetris Game<span style="font-size:x-small"> (v0.1.2)</span></h3>
+<h3>Blazor Tetris Game<span style="font-size:x-small"> (v0.1.4)</span></h3>
 <div @onkeydown="KeyPressed" @ontouchmove="TouchMove" @ontouchstart="TouchStart">
     <div>
         Score: <div id="score">@score</div>
         <button class="btn btn-primary" @onclick="StartGame" autofocus>Start</button>
         <button class="btn btn-warning" @onclick="Reset" autofocus>Reset</button>
     </div>
-    <div id="board">
-        <Canvas id="canvas" @ref="cvs" width="200" height="400" style="border: 8px solid orange;"></Canvas>
+    <div id="board" style="display:flex">
+        <div>
+            <Canvas id="canvas" @ref="cvs" width="200" height="400" style="border: 8px solid orange;"></Canvas>
+        </div>
+        <div id="timerCounter">
+            Time: @timeCounter
+        </div>
     </div>
     <audio id="MainGameAudio" loop>
         <source id="MainGameAudioSource">
     </audio>
-    <audio id="SoundEffectAudio">
-        <source id="SoundEffectAudioSource">
+    <audio id="ClearAudio">
+        <source id="ClearAudioSource">
+    </audio>
+    <audio id="GameOverAudio">
+        <source id="GameOverAudioSource">
+    </audio>
+    <audio id="LevelUpAudio">
+        <source id="LevelUpAudioSource">
     </audio>
     <div>
-        <h6>Touch Movement: @swipeDirection (@clientX1 , @clientY1)</h6>
-        <h6>Double Touch  :  @doubleTap</h6>
+        <h6><em>Swipe Left, Right &amp; Down to move Tetromino. Swipe Up or Double tap to rotate Tetromino.</em></h6>
+        <h6>Speed: @speed  Level-up Points: @levelUpPoints</h6>
     </div>
 </div>
 
@@ -40,14 +51,12 @@
     private Piece gamePiece;
     private Timer timer;
     private int speed = 1000;
+    private int timeCounter = 0;
     private IJSObjectReference module;
-    private string swipeDirection, doubleTap = "";
     private string baseUrl;
-    double clientX1, clientY1 = 0;
     double xDown, yDown = 0;
-
-
     private DateTime lastKeyedTime, lastTapTime = DateTime.Now;
+    private int levelUpPoints = 10;
 
     const int KEYSPEED = 80;
     const int ROW = 20;
@@ -101,6 +110,8 @@
         gameOver = false;
         score = 0;
         speed = 1000;
+        timeCounter = 0;
+        levelUpPoints = 10;
         timer?.Dispose();
         timer = new Timer(Drop, null, 1000, 1000);
     }
@@ -114,6 +125,9 @@
 
     protected void KeyPressed(KeyboardEventArgs args)
     {
+        if (gameOver)
+            return;
+
         if ((DateTime.Now - lastKeyedTime).TotalMilliseconds > KEYSPEED)
         {
             lastKeyedTime = DateTime.Now;
@@ -156,8 +170,6 @@
         var tapElapse = (DateTime.Now - lastTapTime).TotalMilliseconds;
         if (tapElapse < 200 && tapElapse > 0)
         {
-            doubleTap = "Double Tap";
-            swipeDirection = "";
             PieceRotate(gamePiece);
         }
 
@@ -174,8 +186,8 @@
 
         double xUp, yUp = 0;
 
-        clientX1 = xUp = arg.Touches.FirstOrDefault().ClientX;
-        clientY1 = yUp = arg.Touches.FirstOrDefault().ClientY;
+        xUp = arg.Touches.FirstOrDefault().ClientX;
+        yUp = arg.Touches.FirstOrDefault().ClientY;
 
         var xDiff = xDown - xUp;
         var yDiff = yDown - yUp;
@@ -185,12 +197,10 @@
         {
             if (xDiff > 0)
             {
-                swipeDirection = "Swipe Left";
                 PieceMoveLeft(gamePiece);
             }
             else
             {
-                swipeDirection = "Swipe Right";
                 PieceMoveRight(gamePiece);
             }
         }
@@ -200,22 +210,21 @@
             //PieceMoveDown(gamePiece);
             if (yDiff > 0)
             {
-                swipeDirection = "Swipe Up";
                 PieceRotate(gamePiece);
             }
             else
             {
-                swipeDirection = "Swipe Down";
                 PieceMoveDown(gamePiece);
             }
         }
-        doubleTap = "";
         xDown = yDown = 0;
     }
 
     protected void Drop(object state)
     {
+        timeCounter++;
         PieceMoveDown(gamePiece);
+
         InvokeAsync(() => StateHasChanged());
         if (gameOver)
             timer.Dispose();
@@ -356,7 +365,7 @@
                 // pieces to lock on top = game over
                 if (piece.y + r < 0)
                 {
-                    module.InvokeVoidAsync("PlayAudio", "SoundEffectAudio", "SoundEffectAudioSource", baseUrl + "sounds/tetris/gameover.wav");
+                    module.InvokeVoidAsync("PlayAudio", "GameOverAudio", "GameOverAudioSource", baseUrl + "sounds/tetris/gameover.wav");
                     module.InvokeVoidAsync("StopAudio", "MainGameAudio");
                     gameOver = true;
                     breakLoops = true;
@@ -381,7 +390,7 @@
 
                 if (isRowFull)
                 {
-                    module.InvokeVoidAsync("PlayAudio", "SoundEffectAudio", "SoundEffectAudioSource", baseUrl + "sounds/tetris/clear.wav");
+                    module.InvokeVoidAsync("PlayAudio", "ClearAudio", "ClearAudioSource", baseUrl + "sounds/tetris/clear.wav");
                     // Row is Full, we will move down all the rows above it
                     for (int y = r; y > 1; y--)
                     {
@@ -397,14 +406,15 @@
                         board[0, c] = VACANT;
                     }
 
-                    score += 10;
+                    score += levelUpPoints;
                     if (score % 20 == 0)
                     {
-                        module.InvokeVoidAsync("PlayAudio", "SoundEffectAudio", "SoundEffectAudioSource", baseUrl + "sounds/tetris/success.wav");
-                        speed -= 100;
+                        module.InvokeVoidAsync("PlayAudio", "LevelUpAudio", "LevelUpAudioSource", baseUrl + "sounds/tetris/success.wav");
+                        levelUpPoints += 10;
+                        if (speed > 200) 
+                            speed -= 100;
                         timer.Change(speed, speed);
                     }
-
                 }
             }
             drawBoard();
