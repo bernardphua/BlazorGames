@@ -7,7 +7,7 @@
 @implements IDisposable
 
 
-<h3>Blazor Tetris Game<span style="font-size:x-small"> (v0.1.1)</span></h3>
+<h3>Blazor Tetris Game<span style="font-size:x-small"> (v0.1.2)</span></h3>
 <div @onkeydown="KeyPressed" @ontouchmove="TouchMove" @ontouchstart="TouchStart">
     <div>
         Score: <div id="score">@score</div>
@@ -154,7 +154,7 @@
         }
 
         var tapElapse = (DateTime.Now - lastTapTime).TotalMilliseconds;
-        if (tapElapse < 500 && tapElapse > 0)
+        if (tapElapse < 200 && tapElapse > 0)
         {
             doubleTap = "Double Tap";
             swipeDirection = "";
@@ -196,18 +196,18 @@
         }
         else
         {
-            swipeDirection = "Swipe Down";
-            PieceMoveDown(gamePiece);
-            //if (yDiff > 0)
-            //{
-            //    swipeDirection = "Swipe Up";
-            //    PieceRotate(gamePiece);
-            //}
-            //else
-            //{
-            //    swipeDirection = "Swipe Down";
-            //    PieceMoveDown(gamePiece);
-            //}
+            //swipeDirection = "Swipe Up/Down";
+            //PieceMoveDown(gamePiece);
+            if (yDiff > 0)
+            {
+                swipeDirection = "Swipe Up";
+                PieceRotate(gamePiece);
+            }
+            else
+            {
+                swipeDirection = "Swipe Down";
+                PieceMoveDown(gamePiece);
+            }
         }
         doubleTap = "";
         xDown = yDown = 0;
