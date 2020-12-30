@@ -24,7 +24,7 @@
         <source id="SoundEffectAudioSource">
     </audio>
     <div>
-        <h6>Touch Movement: @swipeDirection (@clientX1 , @clientY1, @clientX2, @clientY2)</h6>
+        <h6>Touch Movement: @swipeDirection (@clientX1 , @clientY1)</h6>
     </div>
 </div>
 
@@ -42,7 +42,7 @@
     private IJSObjectReference module;
     private string swipeDirection = "";
     private string baseUrl;
-    double clientX1, clientX2, clientY1, clientY2 = 0;
+    double clientX1, clientY1 = 0;
     double xDown, yDown = 0;
 
 
