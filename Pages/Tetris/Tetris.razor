@@ -8,7 +8,7 @@
 
 
 <h3>Blazor Tetris Game</h3>
-<div @onkeydown="KeyPressed" @ontouchmove="TouchMove">
+<div @onkeydown="KeyPressed" @ontouchmove="TouchMove" @ontouchstart="TouchStart">
     <div>
         Score: <div id="score">@score</div>
         <button class="btn btn-primary" @onclick="StartGame" autofocus>Start</button>
@@ -43,6 +43,7 @@
     private string swipeDirection = "";
     private string baseUrl;
     double clientX1, clientX2, clientY1, clientY2 = 0;
+    double xDown, yDown = 0;
 
 
     private DateTime lastKeyedTime = DateTime.Now;
@@ -136,23 +137,34 @@
         }
     }
 
-    protected void TouchMove(TouchEventArgs args)
+    protected void TouchStart(TouchEventArgs arg)
     {
-        if (args.Touches.Length == 0 || args.Touches == null)
+        if (arg.Touches.Length == 0)
+        {
+            xDown = yDown = 0;
+        }
+        else
+        {
+            xDown = arg.Touches[0].ClientX;
+            yDown = arg.Touches[0].ClientY;
+        }
+    }
+
+    protected void TouchMove(TouchEventArgs arg)
+    {
+        if (xDown == 0 || yDown == 0)
             return;
 
-        double x1, x2, y1, y2 = 0;
+        double xUp, yUp = 0;
 
-        clientX1 = x1 = args.Touches.FirstOrDefault().ClientX;
-        clientX2 = x2 = args.Touches.LastOrDefault().ClientX;
-        clientY1 = y1 = args.Touches.FirstOrDefault().ClientY;
-        clientY2 = y2 = args.Touches.LastOrDefault().ClientY;
+        clientX1 = xUp = arg.Touches.FirstOrDefault().ClientX;
+        clientY1 = yUp = arg.Touches.FirstOrDefault().ClientY;
 
-        var xDiff = Math.Abs(x2 - x1);
-        var yDiff = Math.Abs(y2 - y1);
+        var xDiff = xDown - xUp;
+        var yDiff = yDown - yUp;
 
 
-        if (xDiff > yDiff)
+        if (Math.Abs(xDiff) > Math.Abs(yDiff))
         {
             if (xDiff > 0)
                 swipeDirection = "Swipe Left";
@@ -166,6 +178,7 @@
             else
                 swipeDirection = "Swipe Down";
         }
+        xDown = yDown = 0;
     }
 
     protected void Drop(object state)
@@ -311,7 +324,7 @@
                 // pieces to lock on top = game over
                 if (piece.y + r < 0)
                 {
-                    module.InvokeVoidAsync("PlayAudio", "SoundEffectAudio", "SoundEffectAudioSource", baseUrl +  "sounds/tetris/gameover.wav");
+                    module.InvokeVoidAsync("PlayAudio", "SoundEffectAudio", "SoundEffectAudioSource", baseUrl + "sounds/tetris/gameover.wav");
                     module.InvokeVoidAsync("StopAudio", "MainGameAudio");
                     gameOver = true;
                     breakLoops = true;
