@@ -7,7 +7,7 @@
 @implements IDisposable
 
 
-<h3>Blazor Tetris Game</h3>
+<h3>Blazor Tetris Game<span style="font-size:x-small"> (v0.1.1)</span></h3>
 <div @onkeydown="KeyPressed" @ontouchmove="TouchMove" @ontouchstart="TouchStart">
     <div>
         Score: <div id="score">@score</div>
@@ -36,7 +36,7 @@
     private string[,] board = new string[ROW, COL];
     private List<Piece> Pieces = new List<Piece>();
     private Tetromino tetromino = new Tetromino();
-    private bool gameOver = false;
+    private bool gameOver = true;
     private Piece gamePiece;
     private Timer timer;
     private int speed = 1000;
@@ -140,6 +140,9 @@
 
     protected void TouchStart(TouchEventArgs arg)
     {
+        if (gameOver)
+            return;
+
         if (arg.Touches.Length == 0)
         {
             xDown = yDown = 0;
@@ -151,7 +154,7 @@
         }
 
         var tapElapse = (DateTime.Now - lastTapTime).TotalMilliseconds;
-        if (tapElapse < 600 && tapElapse > 0)
+        if (tapElapse < 500 && tapElapse > 0)
         {
             doubleTap = "Double Tap";
             swipeDirection = "";
@@ -163,6 +166,9 @@
 
     protected void TouchMove(TouchEventArgs arg)
     {
+        if (gameOver)
+            return;
+
         if (xDown == 0 || yDown == 0)
             return;
 
@@ -190,16 +196,18 @@
         }
         else
         {
-            if (yDiff > 0)
-            {
-                swipeDirection = "Swipe Up";
-                PieceRotate(gamePiece);
-            }
-            else
-            {
-                swipeDirection = "Swipe Down";
-                PieceMoveDown(gamePiece);
-            }
+            swipeDirection = "Swipe Down";
+            PieceMoveDown(gamePiece);
+            //if (yDiff > 0)
+            //{
+            //    swipeDirection = "Swipe Up";
+            //    PieceRotate(gamePiece);
+            //}
+            //else
+            //{
+            //    swipeDirection = "Swipe Down";
+            //    PieceMoveDown(gamePiece);
+            //}
         }
         doubleTap = "";
         xDown = yDown = 0;
