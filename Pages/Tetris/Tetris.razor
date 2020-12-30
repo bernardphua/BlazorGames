@@ -24,7 +24,7 @@
         <source id="SoundEffectAudioSource">
     </audio>
     <div>
-        Touch Movement: @swipeDirection
+        <h6>Touch Movement: @swipeDirection (@clientX1 , @clientY1, @clientX2, @clientY2)</h6>
     </div>
 </div>
 
@@ -42,6 +42,7 @@
     private IJSObjectReference module;
     private string swipeDirection = "";
     private string baseUrl;
+    double clientX1, clientX2, clientY1, clientY2 = 0;
 
 
     private DateTime lastKeyedTime = DateTime.Now;
@@ -140,16 +141,16 @@
         if (args.Touches.Length == 0 || args.Touches == null)
             return;
 
-        var t = args.Touches;
         double x1, x2, y1, y2 = 0;
 
-        x1 = args.Touches.FirstOrDefault().ClientX;
-        x2 = args.Touches.LastOrDefault().ClientX;
-        y1 = args.Touches.FirstOrDefault().ClientY;
-        y2 = args.Touches.LastOrDefault().ClientY;
+        clientX1 = x1 = args.Touches.FirstOrDefault().ClientX;
+        clientX2 = x2 = args.Touches.LastOrDefault().ClientX;
+        clientY1 = y1 = args.Touches.FirstOrDefault().ClientY;
+        clientY2 = y2 = args.Touches.LastOrDefault().ClientY;
 
         var xDiff = Math.Abs(x2 - x1);
         var yDiff = Math.Abs(y2 - y1);
+
 
         if (xDiff > yDiff)
         {
