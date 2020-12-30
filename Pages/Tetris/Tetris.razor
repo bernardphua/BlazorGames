@@ -24,7 +24,7 @@
         <source id="SoundEffectAudioSource">
     </audio>
     <div>
-        <h6>Touch Movement: @swipeDirection (@clientX1 , @clientY1)</h6>
+        <h6>Touch Movement: @swipeDirection @doubleTap (@clientX1 , @clientY1)</h6>
     </div>
 </div>
 
@@ -40,13 +40,13 @@
     private Timer timer;
     private int speed = 1000;
     private IJSObjectReference module;
-    private string swipeDirection = "";
+    private string swipeDirection, doubleTap = "";
     private string baseUrl;
     double clientX1, clientY1 = 0;
     double xDown, yDown = 0;
 
 
-    private DateTime lastKeyedTime = DateTime.Now;
+    private DateTime lastKeyedTime, lastTapTime = DateTime.Now;
 
     const int KEYSPEED = 80;
     const int ROW = 20;
@@ -148,6 +148,14 @@
             xDown = arg.Touches[0].ClientX;
             yDown = arg.Touches[0].ClientY;
         }
+
+        var tapElapse = (DateTime.Now - lastTapTime).TotalMilliseconds;
+        if (tapElapse <600 && tapElapse > 0)
+        {
+            doubleTap = "Double Tap";
+            swipeDirection = "";
+        }
+
     }
 
     protected void TouchMove(TouchEventArgs arg)
