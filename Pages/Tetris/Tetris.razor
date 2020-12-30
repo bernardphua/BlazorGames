@@ -24,7 +24,8 @@
         <source id="SoundEffectAudioSource">
     </audio>
     <div>
-        <h6>Touch Movement: @swipeDirection @doubleTap (@clientX1 , @clientY1)</h6>
+        <h6>Touch Movement: @swipeDirection (@clientX1 , @clientY1)</h6>
+        <h6>Double Touch  :  @doubleTap</h6>
     </div>
 </div>
 
@@ -156,6 +157,7 @@
             swipeDirection = "";
         }
 
+        lastTapTime = DateTime.Now;
     }
 
     protected void TouchMove(TouchEventArgs arg)
