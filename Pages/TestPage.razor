@@ -1,0 +1,28 @@
+﻿@page "/TestPage"
+@inject IJSRuntime jsRunTime 
+
+<h3>TestPage</h3>
+
+<canvas @ref="cvs" width="600" height="400"></canvas>
+<button class="btn btn-primary" @onclick="RenderCanvas">Render Canvas</button>
+
+@code {
+
+    private ElementReference cvs;
+    private Context2D ctx;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        ctx = await jsRunTime.GetContext2DAsync(cvs);
+        await ctx.FontAsync("48px solid");
+        await ctx.StrokeTextAsync("Excubo.Blazor.Canvas", 0, 100);
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+
+    private void RenderCanvas()
+    {
+        ctx.FillStyleAsync("black");
+        ctx.FillRectAsync(0, 0, 600, 800);
+    }
+}

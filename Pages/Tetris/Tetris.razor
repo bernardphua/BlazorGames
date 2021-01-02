@@ -86,7 +86,7 @@
             ctx = await cvs.GetContext2DAsync();
             clearBoard();
 
-            module = await jsRuntime.InvokeAsync<IJSObjectReference>("import", "./js/tetris.js");
+            module = await jsRuntime.InvokeAsync<IJSObjectReference>("import", "./js/blazorgames.js");
         }
         await base.OnAfterRenderAsync(firstRender);
     }
