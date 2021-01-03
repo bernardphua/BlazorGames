@@ -26,7 +26,7 @@ namespace BlazorGames.Models.BubbleShooter
             radius = Radius;
             color = Color;
             velocity = Velocity;
-            alpha = 0.3;
+            alpha = 0.5;
         }
 
         public void Draw()

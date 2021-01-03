@@ -50,6 +50,7 @@
     private TimeSpan interval;
     private DateTime gameStartDateTime;
     private string baseUrl;
+    double enemySpeed = 1;
 
     private Random rnd = new Random();
 
@@ -70,8 +71,8 @@
             jsModule = await jsRuntime.InvokeAsync<IJSObjectReference>("import", "./js/blazorgames.js");
             var y = await jsModule.InvokeAsync<int>("GetWindowInnerHeight");
             var x = await jsModule.InvokeAsync<int>("GetWindowInnerWidth");
-            canvasHeight = Convert.ToInt32(y * 0.8);
-            canvasWidth = Convert.ToInt32(x * 0.8);
+            canvasHeight = Convert.ToInt32(y * 0.65);
+            canvasWidth = Convert.ToInt32(x * 0.65);
             await jsModule.InvokeVoidAsync("SetCanvasDimension", "canvas", canvasWidth, canvasHeight);
             ctx = await jsRuntime.GetContext2DAsync(cvs);
             await ctx.FillStyleAsync("black");
@@ -113,7 +114,8 @@
         int radius = rnd.Next(6, 40);
         int x = 0;
         int y = 0;
-        string color = $"hsl({rnd.Next(360)}, 50%, 50%)";
+        string color = $"hsl({rnd.Next(360)}, 100%, 50%)";
+
 
         if (enemies.Count > 5)
             return;
@@ -128,8 +130,12 @@
             y = rnd.NextDouble() < 0.5 ? 0 - radius : canvasHeight + radius;
             x = rnd.Next(canvasWidth);
         }
+
+        if (interval.Seconds % 10 == 0)
+            enemySpeed += 0.02;
+
         var angle = Math.Atan2(canvasHeight / 2 - y, canvasWidth / 2 - x);
-        var velocity = new Velocity(Math.Cos(angle), Math.Sin(angle));
+        var velocity = new Velocity(Math.Cos(angle) * enemySpeed, Math.Sin(angle) * enemySpeed);
 
         Enemy enemy = new Enemy(x, y, radius, color, velocity);
         enemies.Add(enemy);
@@ -162,6 +168,7 @@
                     p.y + p.radius < 0 || p.y - p.radius > canvasHeight)
                 {
                     toRemoveProjectiles.Add(p);
+                    score -= 10;
                 }
             }
             projectiles.RemoveAll(toRemoveProjectiles.Contains);
@@ -186,11 +193,11 @@
                     await c.FillStyleAsync("Cornsilk");
                     await c.FillRectAsync(0, canvasHeight / 2 - 70, canvasWidth, 100);
                     await c.LineWidthAsync(15);
-                    await c.StrokeStyleAsync(0, 0, canvasHeight / 2 - 69, 0, (0, "magenta"), (0.5, "blue"), (1.0, "red"));
-                    await c.StrokeRectAsync(0, canvasHeight / 2 - 69, canvasWidth, 99);
-                    await c.FontAsync("35px Comic Sans MS");
+                    await c.StrokeStyleAsync(0, 0, canvasWidth, canvasHeight, (0, "magenta"), (0.5, "blue"), (1.0, "red"));
+                    await c.StrokeRectAsync(0, canvasHeight / 2 - 70, canvasWidth, 100);
+                    await c.FontAsync("900 35px Comic Sans MS");
                     await c.TextAlignAsync(TextAlign.Center);
-                    await c.FillStyleAsync(0, 0, canvasWidth / 2, 0, (0, "magenta"), (0.5, "blue"), (1.0, "red"));
+                    await c.FillStyleAsync(canvasWidth / 2 - 100, canvasHeight / 2, canvasWidth / 2 + 100, canvasHeight / 2 + 100, (0, "magenta"), (0.5, "blue"), (1.0, "red"));
                     await c.FillTextAsync("Game Over", canvasWidth / 2, canvasHeight / 2 - 2);
                     break;
                 }
