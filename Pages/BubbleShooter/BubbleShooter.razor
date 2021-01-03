@@ -9,12 +9,12 @@
 @implements IDisposable
 
 
-<h4 style="user-select:none;">Blazor Bubble Shooter Game <span style="font-size:x-small"> (v.0.1.0)</span></h4>
+<h4 style="user-select:none;">Blazor Bubble Shooter Game <span style="font-size:x-small"> (v.0.2.0)</span></h4>
 <div class="mb-1">
     <button class="btn btn-primary" disabled="@StartGameButtonDisabled" @onclick="StartGame">Start Game</button>
     <button class="btn btn-info" @onclick="RestartGame">Restart Game</button>
-    <span style="font-weight:bold; ">Score: @score</span>
-    <span style="font-weight:bold; padding-left:10px;">Timer: @timeElapsed</span>
+    <span style="font-weight:bold; user-select:none;">Score: @score</span>
+    <span style="font-weight:bold; padding-left:10px; user-select:none">Timer: @timeElapsed</span>
 </div>
 <canvas id="canvas" @ref="cvs" style="border: 8px solid orange;" @onclick="HandleClick"></canvas>
 <audio id="MainGameAudio" loop>
