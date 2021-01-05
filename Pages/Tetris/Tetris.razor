@@ -8,7 +8,7 @@
 
 
 <h3>Blazor Tetris Game<span style="font-size:x-small"> (v0.1.4)</span></h3>
-<div @onkeydown="KeyPressed" @ontouchmove="TouchMove" @ontouchstart="TouchStart">
+<div @onkeydown="KeyPressed" @ontouchmove="TouchMove" @ontouchstart="TouchStart" @ontouchmove:preventDefault="true">
     <div>
         Score: <div id="score">@score</div>
         <button class="btn btn-primary" @onclick="StartGame" autofocus>Start</button>
@@ -218,7 +218,6 @@
             }
         }
         xDown = yDown = 0;
-        arg.preventDefault();
     }
 
     protected void Drop(object state)
