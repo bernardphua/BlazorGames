@@ -8,7 +8,7 @@
 
 
 <h3>Blazor Tetris Game<span style="font-size:x-small"> (v0.1.5)</span></h3>
-<div @onkeydown="KeyPressed" @ontouchmove="TouchMove" @ontouchstart="TouchStart" @ontouchmove:preventDefault="true">
+<div @onkeydown="KeyPressed" @ontouchmove="TouchMove" @ontouchstart="TouchStart" @ontouchend:preventDefault="true">
     <div>
         Score: <div id="score">@score</div>
         <button class="btn btn-primary" @onclick="StartGame" autofocus>Start</button>
@@ -167,6 +167,7 @@
             yDown = arg.Touches[0].ClientY;
         }
 
+        // To detect double tap on the screen.
         var tapElapse = (DateTime.Now - lastTapTime).TotalMilliseconds;
         if (tapElapse < 200 && tapElapse > 0)
         {
@@ -184,7 +185,7 @@
         if (xDown == 0 || yDown == 0)
             return;
 
-        double xUp, yUp = 0;
+        double xUp, yUp = 0; 
 
         xUp = arg.Touches.FirstOrDefault().ClientX;
         yUp = arg.Touches.FirstOrDefault().ClientY;
