@@ -1,28 +1,106 @@
 ﻿@page "/TestPage"
-@inject IJSRuntime jsRunTime 
+@using System.ComponentModel.DataAnnotations
+@inject IJSRuntime jsRunTime
 
 <h3>TestPage</h3>
 
 <canvas @ref="cvs" width="600" height="400"></canvas>
+<br/>
 <button class="btn btn-primary" @onclick="RenderCanvas">Render Canvas</button>
+<button class="btn btn-outline-info" @onclick="ShowForm">Show Student Form</button>
+
+@if (ShowEditForm)
+{
+    <div style="background-color:lightgray;">
+        <div style="padding:1vw;">
+            <EditForm Model="@StudentModel" OnValidSubmit="@SubmitStudentForm">
+                <DataAnnotationsValidator />
+
+                Name:
+                <input @ref="NameInputRef" @bind-value="@StudentModel.Name" type="text" style="width:100%;" />
+                <br /><br />
+
+                Email: (Using Inherit InputText Method for 'oninput' validation)
+                <InputInstanceText @bind-Value="@StudentModel.Email" type="email" style="width:100%;" />
+                <br /><br />
+
+                Telephone: (Using inline JavaScript triggering 'oninput' method for validation)
+                <InputText @bind-Value="@StudentModel.Telephone" style="width:100%;" oninput="this.dispatchEvent(new Event('change'))" />
+                <br /><br />
+
+                <button type="submit">Submit</button>
+                <span>&nbsp;</span>
+                <button type="button" @onclick="CancelButtonPressed">Cancel</button>
+
+                <ValidationSummary />
+            </EditForm>
+        </div>
+    </div>
+}
+
 
 @code {
 
+    public class Student
+    {
+        [Required]
+        [StringLength(maximumLength: 20, ErrorMessage = "Name can only be 20 characters.")]
+        public string Name { get; set; }
+
+        [EmailAddress]
+        public string Email { get; set; }
+
+        [Phone]
+        public string Telephone { get; set; }
+    }
+
     private ElementReference cvs;
     private Context2D ctx;
+    private bool ShowEditForm = true;
+    private Student StudentModel = new Student();
+    ElementReference NameInputRef, EmailInputRef;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        ctx = await jsRunTime.GetContext2DAsync(cvs);
-        await ctx.FontAsync("48px solid");
-        await ctx.StrokeTextAsync("Excubo.Blazor.Canvas", 0, 100);
+        if (firstRender)
+        {
+            ctx = await jsRunTime.GetContext2DAsync(cvs);
+            await ctx.FontAsync("48px solid");
+            await ctx.StrokeTextAsync("Excubo.Blazor.Canvas", 0, 100); 
+        }
+
         await base.OnAfterRenderAsync(firstRender);
     }
 
 
+    private async void ShowForm()
+    {
+        ShowEditForm = !ShowEditForm;
+        await Task.Delay(10);      //Let the browser refresh the DOM and render the screen first.
+        if (ShowEditForm) await NameInputRef.FocusAsync();
+
+    }
+
+    private async void SubmitStudentForm()
+    {
+        StudentModel = new Student();
+        await Task.Delay(10);
+        await NameInputRef.FocusAsync();
+    }
+
+    private void CancelButtonPressed()
+    {
+        ShowEditForm = false;
+    }
+
     private void RenderCanvas()
     {
         ctx.FillStyleAsync("black");
-        ctx.FillRectAsync(0, 0, 600, 800);
+        ctx.FillRectAsync(0, 0, 600, 400);
+        ctx.FillStyleAsync("lightgreen");
+        ctx.FontAsync("20px bold solid");
+        ctx.TextAlignAsync(TextAlign.Center);
+        ctx.FillTextAsync("Rectangle Canvas Rendered",300,200);
+
     }
 }
