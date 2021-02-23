@@ -49,7 +49,10 @@
     private string timeElapsed = "";
     private TimeSpan interval;
     private DateTime gameStartDateTime;
+    private DateTime lastTimeStamp;
     private string baseUrl;
+    private readonly int targetMillisecPerFrame = (1000 / 50);
+    private TimeSpan ticksDelta;
     double enemySpeed = 1;
 
     private Random rnd = new Random();
@@ -88,10 +91,11 @@
         gameOver = false;
         StartGameButtonDisabled = true;
         animationId = 0;
+        lastTimeStamp = DateTime.Now;
+        gameStartDateTime = DateTime.Now;
         jsModule.InvokeVoidAsync("PlayAudio", "MainGameAudio", "MainGameAudioSource", baseUrl + "sounds/bubbleShooter/Tap-Till-You-Snap.mp3");
         jsModule.InvokeVoidAsync("StartGame", dotNetRef);
         timer.Enabled = true;
-        gameStartDateTime = DateTime.Now;
     }
 
     private void RestartGame()
@@ -144,15 +148,26 @@
     [JSInvokable]
     public async Task GameLoop(int AnimiationId)
     {
-        List<Projectile> toRemoveProjectiles = new List<Projectile>();
-        List<Enemy> toRemoveEnemies = new List<Enemy>();
-        double dist = 0;
 
         //Console.WriteLine($"Enemy:{enemies.Count}, Projectiles:{projectiles.Count}, Particules:{particules.Count}");
 
         interval = DateTime.Now - gameStartDateTime;
         timeElapsed = $"{interval.Minutes}:{interval.Seconds}:{interval.Milliseconds}";
-        await InvokeAsync(StateHasChanged);
+        StateHasChanged();
+
+        ticksDelta = DateTime.Now - lastTimeStamp;
+        if (ticksDelta.Milliseconds >= targetMillisecPerFrame)
+        {
+            lastTimeStamp = DateTime.Now;
+        }
+        else
+        {
+            return;
+        }
+
+        List<Projectile> toRemoveProjectiles = new List<Projectile>();
+        List<Enemy> toRemoveEnemies = new List<Enemy>();
+        double dist = 0;
 
         animationId = AnimiationId;
         await ctx.FillStyleAsync("rgba(0, 0, 0, 0.1)");
@@ -273,5 +288,4 @@
         dotNetRef?.Dispose();
         timer?.Dispose();
     }
-
 }
