@@ -9,7 +9,7 @@
 @implements IDisposable
 
 
-<h4 style="user-select:none;">Blazor Bubble Shooter Game <span style="font-size:x-small"> (v.0.2.0)</span></h4>
+<h4 style="user-select:none;">Blazor Bubble Shooter Game <span style="font-size:x-small"> (v.0.3.2)</span></h4>
 <div class="mb-1">
     <button class="btn btn-primary" disabled="@StartGameButtonDisabled" @onclick="StartGame">Start Game</button>
     <button class="btn btn-info" @onclick="RestartGame">Restart Game</button>
@@ -43,6 +43,7 @@
     private int animationId = 0;
     private DotNetObjectReference<BubbleShooter> dotNetRef;
     private System.Timers.Timer timer;
+    private System.Timers.Timer gameTimer;
     private bool gameOver = true;
     private bool StartGameButtonDisabled = false;
     private int score = 0;
@@ -51,7 +52,7 @@
     private DateTime gameStartDateTime;
     private DateTime lastTimeStamp;
     private string baseUrl;
-    private readonly int targetMillisecPerFrame = (1000 / 50);
+    private readonly double targetFramePerSecond = 35; //0.016667;
     private TimeSpan ticksDelta;
     double enemySpeed = 1;
 
@@ -70,7 +71,9 @@
         {
             dotNetRef = DotNetObjectReference.Create<BubbleShooter>(this);
             timer = new System.Timers.Timer(1000);
+            gameTimer = new System.Timers.Timer(1000 / targetFramePerSecond);
             timer.Elapsed += CreateEnemy;
+            gameTimer.Elapsed += GameLoopElapsed;            
             jsModule = await jsRuntime.InvokeAsync<IJSObjectReference>("import", "./js/blazorgames.js");
             var y = await jsModule.InvokeAsync<int>("GetWindowInnerHeight");
             var x = await jsModule.InvokeAsync<int>("GetWindowInnerWidth");
@@ -94,8 +97,9 @@
         lastTimeStamp = DateTime.Now;
         gameStartDateTime = DateTime.Now;
         jsModule.InvokeVoidAsync("PlayAudio", "MainGameAudio", "MainGameAudioSource", baseUrl + "sounds/bubbleShooter/Tap-Till-You-Snap.mp3");
-        jsModule.InvokeVoidAsync("StartGame", dotNetRef);
+        //jsModule.InvokeVoidAsync("StartGame", dotNetRef);
         timer.Enabled = true;
+        gameTimer.Enabled = true;
     }
 
     private void RestartGame()
@@ -135,7 +139,7 @@
             x = rnd.Next(canvasWidth);
         }
 
-        if (interval.Seconds % 10 == 0)
+        if (interval.TotalSeconds % 5 == 0)
             enemySpeed += 0.02;
 
         var angle = Math.Atan2(canvasHeight / 2 - y, canvasWidth / 2 - x);
@@ -145,26 +149,23 @@
         enemies.Add(enemy);
     }
 
+    private async void GameLoopElapsed(Object source, ElapsedEventArgs args)
+    {
+        animationId++;
+        await GameLoop(animationId);
+    }
+
     [JSInvokable]
     public async Task GameLoop(int AnimiationId)
     {
-
         //Console.WriteLine($"Enemy:{enemies.Count}, Projectiles:{projectiles.Count}, Particules:{particules.Count}");
 
-        interval = DateTime.Now - gameStartDateTime;
-        timeElapsed = $"{interval.Minutes}:{interval.Seconds}:{interval.Milliseconds}";
-        StateHasChanged();
-
         ticksDelta = DateTime.Now - lastTimeStamp;
-        if (ticksDelta.Milliseconds >= targetMillisecPerFrame)
-        {
-            lastTimeStamp = DateTime.Now;
-        }
-        else
-        {
-            return;
-        }
-
+        //Console.WriteLine($"Target Frame/Sec: {targetFramePerSecond:N2} Total Seconds Lapse: {ticksDelta.TotalSeconds:N5}");
+        interval = DateTime.Now - gameStartDateTime;
+        timeElapsed = $"{interval.Minutes}:{interval.Seconds}:{interval.Milliseconds} Frame Per Second: {1 / ticksDelta.TotalSeconds:N2}";
+        StateHasChanged();
+        lastTimeStamp = DateTime.Now;
         List<Projectile> toRemoveProjectiles = new List<Projectile>();
         List<Enemy> toRemoveEnemies = new List<Enemy>();
         double dist = 0;
@@ -247,8 +248,9 @@
             enemies.RemoveAll(toRemoveEnemies.Contains);
             toRemoveEnemies.Clear();
         }
-
-        //return Task.CompletedTask;
+        //if (ticksDelta.TotalSeconds >= targetFramePerSecond)
+        //{
+        //}
     }
 
     private void HandleClick(MouseEventArgs e)
@@ -270,9 +272,10 @@
     {
         gameOver = true;
         timer.Enabled = false;
+        gameTimer.Enabled = false;
         if (animationFrameId > 0)
         {
-            jsModule.InvokeVoidAsync("StopAnimation", animationFrameId);
+            //jsModule.InvokeVoidAsync("StopAnimation", animationFrameId);
         }
         jsModule.InvokeVoidAsync("PlayAudio", "GameOverAudio", "GameOverAudioSource", baseUrl + "sounds/bubbleShooter/gameover.wav");
         jsModule.InvokeVoidAsync("StopAudio", "MainGameAudio");
@@ -287,5 +290,6 @@
 
         dotNetRef?.Dispose();
         timer?.Dispose();
+        gameTimer?.Dispose();
     }
 }
