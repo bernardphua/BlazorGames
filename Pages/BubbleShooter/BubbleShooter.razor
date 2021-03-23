@@ -53,7 +53,7 @@
     private DateTime gameStartDateTime;
     private DateTime lastTimeStamp;
     private string baseUrl;
-    private readonly double targetFramePerSecond = 35; //0.016667;
+    private readonly double targetFramePerSecond = 60; //0.016667;
     private TimeSpan ticksDelta;
     double enemySpeed = 1;
 
@@ -74,7 +74,7 @@
             timer = new System.Timers.Timer(1000);
             gameTimer = new System.Timers.Timer(1000 / targetFramePerSecond);
             timer.Elapsed += CreateEnemy;
-            gameTimer.Elapsed += GameLoopElapsed;            
+            gameTimer.Elapsed += GameLoopElapsed;
             jsModule = await jsRuntime.InvokeAsync<IJSObjectReference>("import", "./js/blazorgames.js");
             var y = await jsModule.InvokeAsync<int>("GetWindowInnerHeight");
             var x = await jsModule.InvokeAsync<int>("GetWindowInnerWidth");
@@ -95,6 +95,7 @@
         gameOver = false;
         StartGameButtonDisabled = true;
         animationId = 0;
+        enemySpeed = 1;
         lastTimeStamp = DateTime.Now;
         gameStartDateTime = DateTime.Now;
         jsModule.InvokeVoidAsync("PlayAudio", "MainGameAudio", "MainGameAudioSource", baseUrl + "sounds/bubbleShooter/Tap-Till-You-Snap.mp3");
@@ -110,7 +111,7 @@
         enemies.Clear();
         particules.Clear();
 
-        ctx.FillStyleAsync("rgba(0, 0, 0, 0.1)");
+        ctx.FillStyleAsync("rgba(0, 0, 0, 0)");
         ctx.FillRectAsync(0, 0, canvasWidth, canvasHeight);
         player.Draw();
 
@@ -140,8 +141,8 @@
             x = rnd.Next(canvasWidth);
         }
 
-        if (interval.TotalSeconds % 5 == 0)
-            enemySpeed += 0.02;
+        //if (interval.TotalSeconds % 10 == 0)
+        //    enemySpeed += rnd.NextDouble() / 2;
 
         var angle = Math.Atan2(canvasHeight / 2 - y, canvasWidth / 2 - x);
         var velocity = new Velocity(Math.Cos(angle) * enemySpeed, Math.Sin(angle) * enemySpeed);
@@ -162,7 +163,6 @@
         //Console.WriteLine($"Enemy:{enemies.Count}, Projectiles:{projectiles.Count}, Particules:{particules.Count}");
 
         ticksDelta = DateTime.Now - lastTimeStamp;
-        //Console.WriteLine($"Target Frame/Sec: {targetFramePerSecond:N2} Total Seconds Lapse: {ticksDelta.TotalSeconds:N5}");
         interval = DateTime.Now - gameStartDateTime;
         timeElapsed = $"{interval.Minutes}:{interval.Seconds}:{interval.Milliseconds} Frame Per Second: {1 / ticksDelta.TotalSeconds:N2}";
         StateHasChanged();
@@ -172,7 +172,7 @@
         double dist = 0;
 
         animationId = AnimiationId;
-        await ctx.FillStyleAsync("rgba(0, 0, 0, 0.1)");
+        await ctx.FillStyleAsync("rgba(0, 0, 0, 0.18)");
         await ctx.FillRectAsync(0, 0, canvasWidth, canvasHeight);
         player.Draw();
 
@@ -199,7 +199,7 @@
                     particules[i].Update(c);
             }
 
-            foreach (var enemy in enemies)
+            foreach (var (enemy, ememyIndex) in enemies.Select((v, i) => (v, i)))
             {
                 enemy.Update(c);
 
@@ -245,13 +245,11 @@
                 }
                 projectiles.RemoveAll(toRemoveProjectiles.Contains);
                 toRemoveProjectiles.Clear();
+                //Console.WriteLine($"Ememy {ememyIndex} Velocity X:{enemy.velocity.x}  Y:{enemy.velocity.y}");
             }
             enemies.RemoveAll(toRemoveEnemies.Contains);
             toRemoveEnemies.Clear();
         }
-        //if (ticksDelta.TotalSeconds >= targetFramePerSecond)
-        //{
-        //}
     }
 
     private void HandleClick(MouseEventArgs e)
