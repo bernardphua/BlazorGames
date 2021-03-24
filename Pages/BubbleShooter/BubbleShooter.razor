@@ -228,7 +228,7 @@
                         score += 10;
                         await jsModule.InvokeVoidAsync("PlayAudio", "CollisionAudio", "CollisionAudioSource", baseUrl + "sounds/bubbleShooter/explosion.wav");
 
-                        for (int i = 0; i < rnd.Next(5, Convert.ToInt32(Math.Ceiling(enemy.radius / 2 + 5))); i++)
+                        for (int i = 0; i < rnd.Next(5, Convert.ToInt32(enemy.radius)); i++)
                             particules.Add(new Particle(p.x, p.y, rnd.Next(2, 3), enemy.color, new Velocity((rnd.NextDouble() - 0.5) * rnd.Next(8, 10), (rnd.NextDouble() - 0.5) * rnd.Next(8, 10))));
 
                         toRemoveProjectiles.Add(p);
