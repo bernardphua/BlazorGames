@@ -31,13 +31,13 @@ namespace BlazorGames.Models.BubbleShooter
 
         public void Draw()
         {
-            ctx.SaveAsync();
-            ctx.GlobalAlphaAsync(alpha);
+            //ctx.SaveAsync();
+            //ctx.GlobalAlphaAsync(alpha);
             ctx.BeginPathAsync();
             ctx.ArcAsync(x, y, radius, 0, Math.PI * 2, false);
             ctx.FillStyleAsync(color);
             ctx.FillAsync(FillRule.NonZero);
-            ctx.RestoreAsync();
+            //ctx.RestoreAsync();
         }
 
         public void Update(Batch2D CanvasContext)

@@ -127,7 +127,7 @@
         string color = $"hsl({rnd.Next(360)}, 100%, 50%)";
 
 
-        if (enemies.Count > 5)
+        if (enemies.Count > 15)
             return;
 
         if (rnd.NextDouble() < 0.5)
@@ -172,11 +172,11 @@
         double dist = 0;
 
         animationId = AnimiationId;
-        await ctx.FillStyleAsync("rgba(0, 0, 0, 0.18)");
+        await ctx.FillStyleAsync("rgba(0, 0, 0, 0.2)");
         await ctx.FillRectAsync(0, 0, canvasWidth, canvasHeight);
         player.Draw();
 
-        await using (var c = await ctx.CreateBatchAsync())
+        await using (var c = ctx.CreateBatch())
         {
             foreach (var p in projectiles)
             {
